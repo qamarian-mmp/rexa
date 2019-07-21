@@ -1,5 +1,9 @@
 package main
 
+import (
+	"github.com/qamarian-top/rx-lib"
+)
+
 /* thread type id, instance id, init function of thread, dnit function of thread, read channel for
 delegate (to read message from kernel), write channel for delegate (to write message to kernel),
 start-up signal, shutdown signal */
@@ -14,7 +18,7 @@ in the future.
 considered invalid data, and would be treated as value "1". Meaning of "x" might change in the
 future. */
 
-func del (threadTypeID, instanceID string, readFromChan <-chan *Message, sendToChan chan<-
-	*Message, startupSignal, shutdowSignal byte) {
+func del (threadTypeID, instanceID string, readFromChan *<-chan *rxlib.Message, sendToChan *chan<-
+	*rxlib.Message, startupSignal, shutdowSignal byte) {
 	//
 }

@@ -4,6 +4,10 @@ import (
 	"github.com/qamarian-mop/rx-lib"
 )
 
+func init () {
+	//
+}
+
 func main () {
 	//
 }
