@@ -9,7 +9,7 @@ import (
 	// Import below, all thread types you wish to be part of the system
 )
 
-var THREAD_TYPES map[string]rxlib.ThreadTypeRegister = map[string]rxlib.ThreadTypeRegister { /* One
+var mTHREAD_TYPES map[string]rxlib.ThreadTypeRegister = map[string]rxlib.ThreadTypeRegister { /* One
 	more step to make a thread type a part of this system: register the thread type here. Key
 	should be an ID for the thread type (value must be numeric string). Value of key should be
 	the register of the thread type. */
