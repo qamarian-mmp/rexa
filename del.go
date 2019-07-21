@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/qamarian-top/rx-lib"
+	"github.com/qamarian-mop/rx-lib"
 )
 
 /* thread type id, instance id, init function of thread, dnit function of thread, read channel for
