@@ -6,11 +6,11 @@ import (
 )
 
 // NewLog () helps create a new log.
-func NewLog () (*log) {
+func newLog () (*log) {
 	return &log {}
 }
 
-// This data type is an emissary of the abstract data type rxlib.RxLog.
+// This data type is an implementation of the abstract data type (ADT) rxlib.RxLog.
 type log struct {}
 
 func (l *log) Record (newLog string, logType byte) (error) {
