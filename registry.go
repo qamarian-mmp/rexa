@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gopkg.in/qamarian-mmp/rxlib"
+	"gopkg.in/qamarian-mmp/rxlib.v0"
 	// Import mains below ...
 
 )

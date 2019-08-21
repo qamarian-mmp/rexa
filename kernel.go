@@ -5,12 +5,13 @@ import (
 	"gopkg.in/qamarian-dtp/rnet.v1"
 	"gopkg.in/qamarian-dtp/system.v1"
 	"gopkg.in/qamarian-etc/slices.v1"
-	"gopkg,in/qamarian-mmp/rxlib.v0"
+	"gopkg.in/qamarian-mmp/rxlib.v0"
 	"runtime"
 	"sync"
 )
 
 func main () {
+	// 
 	if osLog == nil {
 		fmt.Println ("A log was not provided.")
 		return
@@ -25,18 +26,19 @@ func main () {
 			"RbS shutting down...", rxlib.LrtWarning)
 		return
 	}
+	// ... }
 	defer func () {
-		panicReason = recover ()
+		panicReason := recover ()
 		if panicReason != nil {
 			osLog.Record ("Software is shutting down due to a panic.",
 				rxlib.LrtError)
 			fmt.Println (panicReason)
 		}
 	} ()
-	validMains := map[string]*Register {}
+	validMains := map[string]*rxlib.Register {}
 	rbsSystem := system.New ()
 	for _, reg := range mains {
-		if reg.ID () == 0 {
+		if reg.ID () == "" {
 			osLog.Record ("A main is using an empty string as ID.",
 				rxlib.LrtWarning)
 			return
@@ -61,7 +63,7 @@ func main () {
 		errX := rbsSystem.AddElement (reg.ID (), reg.Dep ())
 		if errX != nil {
 			errMssg := fmt.Sprintf ("Unable to add main '%s', as element, " +
-				"to the data needed to determine this RbS's startup "
+				"to the data needed to determine this RbS's startup " +
 				"order. [%s]", reg.ID (), errX.Error ())
 			osLog.Record (errMssg, rxlib.LrtError)
 			return
@@ -77,12 +79,12 @@ func main () {
 	net := rnet.New ()
 	shutdownChanLocker := &sync.Mutex {}
 	shutdownChan := sync.NewCond (shutdownChanLocker)
-	shutdownKeys := map[string]MasterKey
+	shutdownKeys := map[string]rxlib.MasterKey {}
 	defer shutdown (slices.RevStringSlice (startupOrder), shutdownKeys)
 	for _, someMain := range startupOrder {
 		outX := fmt.Sprintf ("Starting up main '%s'...", someMain)
 		osLog.Record (outX, rxlib.LrtStandard)
-		ppo, errZ := net.NewPPO (somMain)
+		ppo, errZ := net.NewPPO (someMain)
 		if errZ != nil {
 			errMssg := fmt.Sprintf ("A communication channel (PPO) could " +
 				"not be created for main '%s'. [%s]", someMain,
@@ -95,9 +97,13 @@ func main () {
 			masterKey rxlib.MasterKey = rxkey
 			key rxlib.Key = rxkey
 		)
-		go validMains[someMain].StartupFunc (key)
-		for result, note := masterKey.StartupResult ();
-			result != rxlib.SrStartedUp {
+		startupFunc := validMains[someMain].StartupFunc ()
+		startupFunc (key)
+		for {
+			result, note := masterKey.StartupResult ()
+			if result == rxlib.SrStartedUp {
+				break
+			}
 			if result == rxlib.SrStartupFailed {
 				errMssg := fmt.Sprintf ("Unable to startup main '%s'. " +
 					"[%s]", someMain, note)
@@ -115,16 +121,16 @@ func main () {
 	shutdownChanLocker.Unlock ()
 }
 
-func shutdown (shutdownOrder []string, shutdownKeys MasterKey) {
+func shutdown (shutdownOrder []string, shutdownKeys map[string]rxlib.MasterKey) {
 	osLog.Record ("Graceful shutdown has started.", rxlib.LrtStandard)
 	for _, someMain := range shutdownOrder {
 		masterKey := shutdownKeys[someMain]
 		masterKey.ShutdownMain ()
-		if masterKey.ShutdownState () == SsNotApplicable {
+		if masterKey.ShutdownState () == rxlib.SsNotApplicable {
 			runtime.Gosched ()
 			continue
 		}
-		for masterKey.ShutdownState () != SsHasShutdown {
+		for masterKey.ShutdownState () != rxlib.SsHasShutdown {
 			runtime.Gosched ()
 		}
 		outX := fmt.Sprintf ("Main '%s' has been shutdown.", someMain)

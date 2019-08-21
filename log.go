@@ -2,7 +2,7 @@ package main
 
 import (
 	"gopkg.in/qamarian-lib/str.v2"
-	"gopkg.in/qamarian-mmp/rxlib.v1"
+	"gopkg.in/qamarian-mmp/rxlib.v0"
 )
 
 // NewLog () helps create a new log.
@@ -16,8 +16,8 @@ type log struct {}
 func (l *log) Record (newLog string, logType byte) (error) {
 	outputType := "std"
 	switch logType {
-		case rxlib.LogWarning: outputType = "wrn"
-		case rxlib.LogError: outputType = "err"
+		case rxlib.LrtWarning: outputType = "wrn"
+		case rxlib.LrtError: outputType = "err"
 	}
 	str.PrintEtr (newLog, outputType, "rexa")
 	return nil
