@@ -6,27 +6,29 @@ import (
 	"gopkg.in/qamarian-dtp/system.v1"
 	"gopkg.in/qamarian-etc/slices.v1"
 	"gopkg.in/qamarian-mmp/rxlib.v0"
+	"os"
 	"runtime"
 	"sync"
 )
 
 func main () {
-	// 
+	// Operating system pre-startup checks. { ...
 	if osLog == nil {
 		fmt.Println ("A log was not provided.")
-		return
+		os.Exit (1)
 	}
 	osLog.Record ("Rexa-based Software (RbS) starting up...", rxlib.LrtStandard)
 	if mains == nil {
 		osLog.Record ("Value of the main registry is nil.", rxlib.LrtError)
-		return
+		os.Exit (1)
 	}
 	if len (mains) == 0 {
-		osLog.Record ("No main is registered with this OS... nothing to run... " +
-			"RbS shutting down...", rxlib.LrtWarning)
-		return
+		osLog.Record ("No main is registered with this MMP OS... nothing to " +
+			"run... RbS shutting down...", rxlib.LrtWarning)
+		os.Exit (0)
 	}
 	// ... }
+	// Handling of panic, if one should occur. { ...
 	defer func () {
 		panicReason := recover ()
 		if panicReason != nil {
@@ -35,12 +37,14 @@ func main () {
 			fmt.Println (panicReason)
 		}
 	} ()
+	// ... }
+	// Validating registers. { ...
 	validMains := map[string]*rxlib.Register {}
 	rbsSystem := system.New ()
 	for _, reg := range mains {
 		if reg.ID () == "" {
 			osLog.Record ("A main is using an empty string as ID.",
-				rxlib.LrtWarning)
+				rxlib.LrtError)
 			return
 		}
 		dependencies := reg.Dep ()
@@ -49,26 +53,28 @@ func main () {
 				errMssg := fmt.Sprintf ("Main '%s' is using an empty " +
 					"string as the ID of one of its dependencies.",
 					reg.ID ())
-				osLog.Record (errMssg, rxlib.LrtWarning)
+				osLog.Record (errMssg, rxlib.LrtError)
 				return
 			}
 		}
 		if reg.StartupFunc () == nil {
 			errMssg := fmt.Sprintf ("Main '%s' is using nil as its startup " +
 					"function.", reg.ID ())
-			osLog.Record (errMssg, rxlib.LrtWarning)
+			osLog.Record (errMssg, rxlib.LrtError)
 			return
 		}
 		validMains[reg.ID ()] = reg
 		errX := rbsSystem.AddElement (reg.ID (), reg.Dep ())
 		if errX != nil {
-			errMssg := fmt.Sprintf ("Unable to add main '%s', as element, " +
-				"to the data needed to determine this RbS's startup " +
-				"order. [%s]", reg.ID (), errX.Error ())
+			errMssg := fmt.Sprintf ("Unable to add main '%s', as an " +
+				"element, to the data needed to determine this RbS's " +
+				"startup order. [%s]", reg.ID (), errX.Error ())
 			osLog.Record (errMssg, rxlib.LrtError)
 			return
 		}
 	}
+	// ... }
+	// Creating a startup order. { ...
 	startupOrder, errY, more := rbsSystem.InitOrder ()
 	if errY != nil {
 		errMssg := fmt.Sprintf ("Unable to create a startup order. [%s [%s]]",
@@ -76,10 +82,14 @@ func main () {
 		osLog.Record (errMssg, rxlib.LrtError)
 		return
 	}
+	// ... }
+	// Creating necessary data. { ...
 	net := rnet.New ()
 	shutdownChanLocker := &sync.Mutex {}
 	shutdownChan := sync.NewCond (shutdownChanLocker)
 	shutdownKeys := map[string]rxlib.MasterKey {}
+	// ... }
+	// Starting up mains. { ...
 	defer shutdown (slices.RevStringSlice (startupOrder), shutdownKeys)
 	for _, someMain := range startupOrder {
 		outX := fmt.Sprintf ("Starting up main '%s'...", someMain)
@@ -98,7 +108,7 @@ func main () {
 			key rxlib.Key = rxkey
 		)
 		startupFunc := validMains[someMain].StartupFunc ()
-		startupFunc (key)
+		go startupFunc (key)
 		for {
 			result, note := masterKey.StartupResult ()
 			if result == rxlib.SrStartedUp {
@@ -116,9 +126,12 @@ func main () {
 		osLog.Record (outY, rxlib.LrtStandard)
 		runtime.Gosched ()
 	}
+	// ... }
+	// Sleeps till shutdown is signalled. { ...
 	shutdownChanLocker.Lock ()
 	shutdownChan.Wait ()
 	shutdownChanLocker.Unlock ()
+	// ... }
 }
 
 func shutdown (shutdownOrder []string, shutdownKeys map[string]rxlib.MasterKey) {
