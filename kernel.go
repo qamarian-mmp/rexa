@@ -90,7 +90,7 @@ func main () {
 	shutdownKeys := map[string]rxlib.MasterKey {}
 	// ... }
 	// Starting up mains. { ...
-	defer shutdown (slices.RevStringSlice (startupOrder), shutdownKeys)
+	defer shutdown (slices.RevStringSlice (startupOrder), shutdownKeys, net)
 	for _, someMain := range startupOrder {
 		outX := fmt.Sprintf ("Starting up main '%s'...", someMain)
 		osLog.Record (outX, rxlib.LrtStandard)
@@ -107,6 +107,7 @@ func main () {
 			masterKey rxlib.MasterKey = rxkey
 			key rxlib.Key = rxkey
 		)
+		shutdownKeys[someMain] = masterKey
 		startupFunc := validMains[someMain].StartupFunc ()
 		go startupFunc (key)
 		for {
@@ -134,9 +135,12 @@ func main () {
 	// ... }
 }
 
-func shutdown (shutdownOrder []string, shutdownKeys map[string]rxlib.MasterKey) {
+func shutdown (shutdownOrder []string, shutdownKeys map[string]rxlib.MasterKey,
+	netCentre *rnet.NetCentre) {
+
 	osLog.Record ("Graceful shutdown has started.", rxlib.LrtStandard)
 	for _, someMain := range shutdownOrder {
+		netCentre.Disconnect (someMain)
 		masterKey := shutdownKeys[someMain]
 		masterKey.ShutdownMain ()
 		if masterKey.ShutdownState () == rxlib.SsNotApplicable {
