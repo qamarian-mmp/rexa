@@ -142,6 +142,9 @@ func shutdown (shutdownOrder []string, shutdownKeys map[string]rxlib.MasterKey,
 	for _, someMain := range shutdownOrder {
 		netCentre.Disconnect (someMain)
 		masterKey := shutdownKeys[someMain]
+		if masterKey == nil {
+			continue
+		}
 		masterKey.ShutdownMain ()
 		if masterKey.ShutdownState () == rxlib.SsNotApplicable {
 			runtime.Gosched ()
